@@ -1,5 +1,20 @@
 const mongoose = require('mongoose');
 
+const riceVarieties = [
+  "Samba",
+  "Nadu",
+  "Kekulu",
+  "Red Rice",
+  "White Rice",
+  "Basmati",
+  "Brown Rice",
+  "Ponni",
+  "Jasmine",
+  "Suwandel",
+  "Rathdel",
+  "Kalu Heenati"
+];
+
 const MillSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -44,7 +59,8 @@ const MillSchema = new mongoose.Schema({
   },
   specializations: {
     type: [String],
-    enum: ['Basmati', 'Red Rice', 'White Rice', 'Brown Rice']
+    enum: riceVarieties,
+    required: true
   },
   verificationStatus: {
     type: String,

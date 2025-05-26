@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Mill = require('../models/Mill');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 
 // @route   GET /api/mills
-// @desc    Get all mills
+// @desc    Get all verified mills (public, for farmers etc.)
 // @access  Public
 router.get('/', async (req, res) => {
   try {
@@ -22,10 +23,16 @@ router.get('/', async (req, res) => {
 });
 
 // @route   POST /api/mills
-// @desc    Create a mill
+// @desc    Create a mill (only if miller is verified)
 // @access  Private (Miller only)
 router.post('/', protect, authorize('Miller'), async (req, res) => {
   try {
+    // Check if Miller's account is verified
+    const user = await User.findById(req.user._id);
+    if (!user || (user.verificationStatus && user.verificationStatus !== "Verified") || user.accountStatus === "Pending") {
+      return res.status(403).json({ message: "Your account must be verified by an admin before adding mills." });
+    }
+
     const { name, location, contactInfo, specializations } = req.body;
 
     const mill = await Mill.create({

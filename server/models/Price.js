@@ -1,5 +1,20 @@
 const mongoose = require('mongoose');
 
+const riceVarieties = [
+  "Samba",
+  "Nadu",
+  "Kekulu",
+  "Red Rice",
+  "White Rice",
+  "Basmati",
+  "Brown Rice",
+  "Ponni",
+  "Jasmine",
+  "Suwandel",
+  "Rathdel",
+  "Kalu Heenati"
+];
+
 const PriceSchema = new mongoose.Schema({
   millId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -9,7 +24,7 @@ const PriceSchema = new mongoose.Schema({
   riceVariety: {
     type: String,
     required: true,
-    enum: ['Basmati', 'Red Rice', 'White Rice', 'Brown Rice']
+    enum: riceVarieties
   },
   pricePerKg: {
     type: Number,
@@ -34,7 +49,6 @@ const PriceSchema = new mongoose.Schema({
   }
 });
 
-// Custom validation for price reasonableness
 PriceSchema.path('pricePerKg').validate(function(value) {
   return value >= 0 && value <= 1000;
 }, 'Price must be between 0 and 1000');

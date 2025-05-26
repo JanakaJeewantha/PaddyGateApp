@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { getPrices, getPriceHistory } from '../redux/slices/priceSlice';
 import { getMills } from '../redux/slices/millSlice';
 import Spinner from '../components/Spinner';
+import riceVarieties from '../constants/riceVarieties';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -15,7 +16,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import AnimatedCard from '../components/AnimatedCard';
+
 
 // Register ChartJS components
 ChartJS.register(
@@ -176,18 +177,18 @@ const FarmerDashboard = () => {
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="riceVariety">
                 Rice Variety
               </label>
-              <select
-                className="input"
-                id="riceVariety"
-                name="riceVariety"
-                value={filters.riceVariety}
-                onChange={handleFilterChange}
-              >
-                <option value="Basmati">Basmati</option>
-                <option value="Red Rice">Red Rice</option>
-                <option value="White Rice">White Rice</option>
-                <option value="Brown Rice">Brown Rice</option>
-              </select>
+               <select
+                  className="input"
+                  id="riceVariety"
+                  name="riceVariety"
+                  value={filters.riceVariety}
+                  onChange={handleFilterChange}
+                >
+  <option value="">Select Rice Variety</option>
+  {riceVarieties.map(variety => (
+    <option key={variety} value={variety}>{variety}</option>
+  ))}
+</select>
             </div>
             <div className="flex items-end gap-2">
               <button 

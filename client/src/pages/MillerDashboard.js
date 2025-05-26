@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { getPrices, getPriceHistory, updatePrice } from '../redux/slices/priceSlice';
 import { getMillerMills, createMill, updateMill } from '../redux/slices/millSlice';
 import Spinner from '../components/Spinner';
+import riceVarieties from '../constants/riceVarieties';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -16,7 +17,6 @@ import {
   Legend
 } from 'chart.js';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -36,14 +36,13 @@ const MillerDashboard = () => {
     email: '',
     specializations: []
   });
-  
+
   const [priceFormData, setPriceFormData] = useState({
     millId: '',
     riceVariety: '',
-    pricePerKg: '',
-    district: ''
+    pricePerKg: ''
   });
-  
+
   const [editingMill, setEditingMill] = useState(null);
   const [showMillForm, setShowMillForm] = useState(false);
   const [showPriceForm, setShowPriceForm] = useState(false);
@@ -60,10 +59,9 @@ const MillerDashboard = () => {
     dispatch(getPrices());
   }, [dispatch]);
 
-  // Handle mill form change
   const handleMillFormChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'specializations') {
       const options = e.target.options;
       const values = [];
@@ -84,7 +82,6 @@ const MillerDashboard = () => {
     }
   };
 
-  // Handle price form change
   const handlePriceFormChange = (e) => {
     const { name, value } = e.target;
     setPriceFormData(prevState => ({
@@ -93,10 +90,14 @@ const MillerDashboard = () => {
     }));
   };
 
-  // Submit mill form
   const submitMillForm = (e) => {
     e.preventDefault();
-    
+
+    if (!millFormData.name || !millFormData.district || !millFormData.address || !millFormData.phone || !millFormData.email || millFormData.specializations.length === 0) {
+      toast.error('Please fill all mill details and select at least one specialization');
+      return;
+    }
+
     if (editingMill) {
       dispatch(updateMill({
         id: editingMill._id,
@@ -112,11 +113,15 @@ const MillerDashboard = () => {
           },
           specializations: millFormData.specializations
         }
-      })).then(() => {
-        toast.success('Mill updated successfully');
-        setShowMillForm(false);
-        setEditingMill(null);
-        resetMillForm();
+      })).then((action) => {
+        if (!action.error) {
+          toast.success('Mill updated successfully');
+          setShowMillForm(false);
+          setEditingMill(null);
+          resetMillForm();
+        } else {
+          toast.error(action.error.message || "Failed to update mill");
+        }
       });
     } else {
       dispatch(createMill({
@@ -130,43 +135,49 @@ const MillerDashboard = () => {
           email: millFormData.email
         },
         specializations: millFormData.specializations
-      })).then(() => {
-        toast.success('Mill created successfully');
-        setShowMillForm(false);
-        resetMillForm();
+      })).then((action) => {
+        if (!action.error) {
+          toast.success('Mill created successfully');
+          setShowMillForm(false);
+          resetMillForm();
+        } else {
+          toast.error(action.error.message || "Failed to create mill");
+        }
       });
     }
   };
 
-  // Submit price form
   const submitPriceForm = (e) => {
     e.preventDefault();
-    
+
     if (!priceFormData.millId || !priceFormData.riceVariety || !priceFormData.pricePerKg) {
       toast.error('Please fill all required fields');
       return;
     }
 
     const mill = millerMills.find(m => m._id === priceFormData.millId);
-    
+
     if (!mill) {
       toast.error('Selected mill not found');
       return;
     }
-    
+
     dispatch(updatePrice({
       millId: priceFormData.millId,
       riceVariety: priceFormData.riceVariety,
       pricePerKg: parseFloat(priceFormData.pricePerKg),
       district: mill.location.district
-    })).then(() => {
-      toast.success('Price updated successfully');
-      setShowPriceForm(false);
-      resetPriceForm();
+    })).then((action) => {
+      if (!action.error) {
+        toast.success('Price updated successfully');
+        setShowPriceForm(false);
+        resetPriceForm();
+      } else {
+        toast.error(action.error.message || "Failed to update price");
+      }
     });
   };
 
-  // Edit a mill
   const editMill = (mill) => {
     setEditingMill(mill);
     setMillFormData({
@@ -180,7 +191,6 @@ const MillerDashboard = () => {
     setShowMillForm(true);
   };
 
-  // Reset mill form
   const resetMillForm = () => {
     setMillFormData({
       name: '',
@@ -193,24 +203,21 @@ const MillerDashboard = () => {
     setEditingMill(null);
   };
 
-  // Reset price form
   const resetPriceForm = () => {
     setPriceFormData({
       millId: '',
       riceVariety: '',
-      pricePerKg: '',
-      district: ''
+      pricePerKg: ''
     });
   };
 
-  // View price history
   const viewPriceHistory = (price) => {
     const millId = price.millId?._id || price.millId;
     if (!millId) {
       toast.error('Mill ID not found for this price');
       return;
     }
-    
+
     dispatch(getPriceHistory({
       millId: millId,
       riceVariety: price.riceVariety
@@ -219,18 +226,12 @@ const MillerDashboard = () => {
     setShowPriceHistory(true);
   };
 
-  // Filter prices for miller's mills - with null checks
   const millerPrices = prices.filter(price => {
     if (!price || !price.millId) return false;
-    
     const priceMillId = price.millId._id || price.millId;
-    
-    return millerMills.some(mill => {
-      return mill && mill._id && mill._id === priceMillId;
-    });
+    return millerMills.some(mill => mill && mill._id && mill._id === priceMillId);
   });
 
-  // Prepare data for the price history chart
   const chartData = {
     labels: priceHistory.map(history => new Date(history.timestamp).toLocaleDateString()),
     datasets: [
@@ -264,7 +265,7 @@ const MillerDashboard = () => {
   return (
     <div className="max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Miller Dashboard</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">Welcome, {user?.profile?.name || 'Miller'}</h2>
@@ -273,11 +274,11 @@ const MillerDashboard = () => {
             <p><span className="font-medium">Contact:</span> {user?.profile?.contact?.phone || 'N/A'}</p>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-6 md:col-span-2">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="flex flex-wrap gap-4">
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => {
                 resetMillForm();
@@ -286,7 +287,7 @@ const MillerDashboard = () => {
             >
               Add New Mill
             </button>
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => {
                 resetPriceForm();
@@ -299,7 +300,7 @@ const MillerDashboard = () => {
           </div>
         </div>
       </div>
-      
+
       {showMillForm && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">{editingMill ? 'Edit' : 'Add'} Mill</h2>
@@ -320,7 +321,7 @@ const MillerDashboard = () => {
                   required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="district">
                   District
@@ -345,7 +346,6 @@ const MillerDashboard = () => {
                   <option value="Jaffna">Jaffna</option>
                   <option value="Kalutara">Kalutara</option>
                   <option value="Kandy">Kandy</option>
-                  <option value="Anuradhapura">Anuradhapura</option>
                   <option value="Kegalle">Kegalle</option>
                   <option value="Kilinochchi">Kilinochchi</option>
                   <option value="Kurunegala">Kurunegala</option>
@@ -360,10 +360,9 @@ const MillerDashboard = () => {
                   <option value="Ratnapura">Ratnapura</option>
                   <option value="Trincomalee">Trincomalee</option>
                   <option value="Vavuniya">Vavuniya</option>
-                  {/* Add more districts */}
                 </select>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
                   Address
@@ -376,9 +375,10 @@ const MillerDashboard = () => {
                   value={millFormData.address}
                   onChange={handleMillFormChange}
                   placeholder="Enter address"
+                  required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
                   Phone
@@ -391,9 +391,10 @@ const MillerDashboard = () => {
                   value={millFormData.phone}
                   onChange={handleMillFormChange}
                   placeholder="Enter phone number"
+                  required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
                   Email
@@ -406,9 +407,10 @@ const MillerDashboard = () => {
                   value={millFormData.email}
                   onChange={handleMillFormChange}
                   placeholder="Enter email"
+                  required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="specializations">
                   Rice Specializations
@@ -422,15 +424,13 @@ const MillerDashboard = () => {
                   multiple
                   required
                 >
-                <option value="Basmati">Basmati</option>
-                <option value="Red Rice">Red Rice</option>
-                <option value="White Rice">White Rice</option>
-                <option value="Brown Rice">Brown Rice</option>
+                  {riceVarieties.map(variety => (
+                    <option key={variety} value={variety}>{variety}</option>
+                  ))}
                 </select>
                 <small className="text-gray-500">Hold Ctrl (or Cmd) to select multiple</small>
               </div>
             </div>
-            
             <div className="flex justify-end gap-4 mt-4">
               <button
                 type="button"
@@ -452,7 +452,7 @@ const MillerDashboard = () => {
           </form>
         </div>
       )}
-      
+
       {showPriceForm && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Update Rice Price</h2>
@@ -478,7 +478,7 @@ const MillerDashboard = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="riceVariety">
                   Rice Variety
@@ -490,6 +490,7 @@ const MillerDashboard = () => {
                   value={priceFormData.riceVariety}
                   onChange={handlePriceFormChange}
                   required
+                  disabled={!priceFormData.millId}
                 >
                   <option value="">Select Rice Variety</option>
                   {priceFormData.millId && millerMills && millerMills.find(m => m._id === priceFormData.millId)?.specializations?.map(variety => (
@@ -499,7 +500,7 @@ const MillerDashboard = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="pricePerKg">
                   Price per Kg (Rs.)
@@ -518,7 +519,6 @@ const MillerDashboard = () => {
                 />
               </div>
             </div>
-            
             <div className="flex justify-end gap-4 mt-4">
               <button
                 type="button"
@@ -537,7 +537,7 @@ const MillerDashboard = () => {
           </form>
         </div>
       )}
-      
+
       {showPriceHistory && selectedPrice && (
         <div className="mb-8 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold mb-4">Price History</h2>
@@ -552,7 +552,7 @@ const MillerDashboard = () => {
           </button>
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
           <h2 className="text-2xl font-semibold mb-4">Your Mills</h2>
@@ -595,7 +595,7 @@ const MillerDashboard = () => {
             </div>
           )}
         </div>
-        
+
         <div>
           <h2 className="text-2xl font-semibold mb-4">Your Current Prices</h2>
           {!millerPrices || millerPrices.length === 0 ? (

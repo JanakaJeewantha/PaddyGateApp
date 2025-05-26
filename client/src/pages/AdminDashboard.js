@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { getUsers, updateUserStatus, getAllMills, verifyMill } from '../redux/slices/userSlice';
 import Spinner from '../components/Spinner';
-import AnimatedCard from '../components/AnimatedCard';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -46,7 +45,7 @@ const AdminDashboard = () => {
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Welcome, {user.profile.name}</h2>
+        <h2 className="text-xl font-semibold mb-4">Welcome, {user?.profile?.name || user?.username || user?.email}</h2>
         <p className="text-gray-600">
           As an administrator, you can manage users and verify mills on the platform.
         </p>
@@ -99,7 +98,7 @@ const AdminDashboard = () => {
                   {users.map((user) => (
                     <tr key={user._id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {user.profile.name}
+                        {user.profile?.name || user.username || user.email}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.email}
@@ -108,7 +107,7 @@ const AdminDashboard = () => {
                         {user.role}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.profile.location?.district}
+                        {user.profile?.location?.district || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -172,13 +171,13 @@ const AdminDashboard = () => {
                         {mill.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {mill.owner.username || 'Unknown'}
+                        {mill.owner?.username || mill.owner?.email || "Unknown"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {mill.location.district}
+                        {mill.location?.district || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {mill.specializations.join(', ')}
+                        {Array.isArray(mill.specializations) && mill.specializations.length > 0 ? mill.specializations.join(', ') : "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
