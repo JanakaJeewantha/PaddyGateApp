@@ -49,4 +49,29 @@ router.get('/', async (req, res) => {
   }
 });
 
+// NEW: Price history endpoint for graph/charting
+// Returns all price records for a given mill and rice variety, sorted by updateTimestamp ascending
+router.get('/history/:millId/:riceVariety', async (req, res) => {
+  try {
+    const { millId, riceVariety } = req.params;
+
+    // Find all price records for this mill and rice variety
+    const history = await Price.find({
+      millId,
+      riceVariety
+    }).sort({ updateTimestamp: 1 }); // oldest first
+
+    // Format for chart.js: {price, timestamp}
+    const formatted = history.map(item => ({
+      price: item.pricePerKg,
+      timestamp: item.updateTimestamp
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error('Error fetching price history:', err);
+    res.status(500).json({ message: 'Error fetching price history.' });
+  }
+});
+
 module.exports = router;

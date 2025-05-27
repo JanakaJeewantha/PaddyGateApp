@@ -23,7 +23,6 @@ export const getPrices = createAsyncThunk(
         const queryParams = new URLSearchParams(filters).toString();
         url = `${API_URL}?${queryParams}`;
       }
-      
       const response = await axios.get(url);
       return response.data;
     } catch (error) {
@@ -34,7 +33,6 @@ export const getPrices = createAsyncThunk(
     }
   }
 );
-
 
 // Get price history
 export const getPriceHistory = createAsyncThunk(
@@ -54,31 +52,27 @@ export const getPriceHistory = createAsyncThunk(
 
 // Update price
 export const updatePrice = createAsyncThunk(
-    'prices/update',
-    async (priceData, thunkAPI) => {
-      try {
-        const token = thunkAPI.getState().auth.user.token;
-        
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        };
-        
-        const response = await axios.post(API_URL, priceData, config);
-        
-        // Emit socket event for real-time updates
-        emitPriceUpdate(response.data);
-        
-        return response.data;
-      } catch (error) {
-        const message = error.response && error.response.data.message
-          ? error.response.data.message
-          : error.message;
-        return thunkAPI.rejectWithValue(message);
-      }
+  'prices/update',
+  async (priceData, thunkAPI) => {
+    try {
+      const token = thunkAPI.getState().auth.user.token;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+      const response = await axios.post(API_URL, priceData, config);
+      // Emit socket event for real-time updates
+      emitPriceUpdate(response.data);
+      return response.data;
+    } catch (error) {
+      const message = error.response && error.response.data.message
+        ? error.response.data.message
+        : error.message;
+      return thunkAPI.rejectWithValue(message);
     }
-  );
+  }
+);
 
 export const priceSlice = createSlice({
   name: 'prices',
@@ -93,16 +87,18 @@ export const priceSlice = createSlice({
     updatePriceInState: (state, action) => {
       // For real-time updates via socket.io
       const updatedPrice = action.payload;
-      
       const index = state.prices.findIndex(
-        (price) => price.millId === updatedPrice.millId && price.riceVariety === updatedPrice.riceVariety
+        (price) => (price.millId._id || price.millId) === (updatedPrice.millId._id || updatedPrice.millId)
+          && price.riceVariety === updatedPrice.riceVariety
       );
-      
       if (index !== -1) {
         state.prices[index] = updatedPrice;
       } else {
         state.prices.push(updatedPrice);
       }
+    },
+    clearPriceHistory: (state) => {
+      state.priceHistory = [];
     }
   },
   extraReducers: (builder) => {
@@ -139,12 +135,11 @@ export const priceSlice = createSlice({
       .addCase(updatePrice.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        
         const updatedPrice = action.payload;
         const index = state.prices.findIndex(
-          (price) => price.millId === updatedPrice.millId && price.riceVariety === updatedPrice.riceVariety
+          (price) => (price.millId._id || price.millId) === (updatedPrice.millId._id || updatedPrice.millId)
+            && price.riceVariety === updatedPrice.riceVariety
         );
-        
         if (index !== -1) {
           state.prices[index] = updatedPrice;
         } else {
@@ -159,5 +154,5 @@ export const priceSlice = createSlice({
   }
 });
 
-export const { reset, updatePriceInState } = priceSlice.actions;
+export const { reset, updatePriceInState, clearPriceHistory } = priceSlice.actions;
 export default priceSlice.reducer;

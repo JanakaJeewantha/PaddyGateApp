@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { getPrices, getPriceHistory } from '../redux/slices/priceSlice';
+import { getPrices, getPriceHistory, clearPriceHistory } from '../redux/slices/priceSlice';
 import { getMills } from '../redux/slices/millSlice';
 import Spinner from '../components/Spinner';
 import riceVarieties from '../constants/riceVarieties';
@@ -16,7 +16,6 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-
 
 // Register ChartJS components
 ChartJS.register(
@@ -42,7 +41,7 @@ const FarmerDashboard = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { prices, priceHistory, isLoading } = useSelector((state) => state.prices);
-  const { mills } = useSelector((state) => state.mills);
+  //const { mills } = useSelector((state) => state.mills);
 
   useEffect(() => {
     dispatch(getPrices());
@@ -71,14 +70,14 @@ const FarmerDashboard = () => {
       toast.error('Please select a price and enter a valid weight');
       return;
     }
-
     const profit = selectedPrice.pricePerKg * parseFloat(paddyWeight);
     setEstimatedProfit(profit);
   };
 
   const viewPriceHistory = (price) => {
+    dispatch(clearPriceHistory()); // Clear old history before fetching new
     dispatch(getPriceHistory({
-      millId: price.millId._id,
+      millId: price.millId._id || price.millId,
       riceVariety: price.riceVariety
     }));
     setSelectedPrice(price);
@@ -169,26 +168,24 @@ const FarmerDashboard = () => {
                   <option value="Ratnapura">Ratnapura</option>
                   <option value="Trincomalee">Trincomalee</option>
                   <option value="Vavuniya">Vavuniya</option>
-                
               </select>
             </div>
             <div>
-              
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="riceVariety">
                 Rice Variety
               </label>
-               <select
-                  className="input"
-                  id="riceVariety"
-                  name="riceVariety"
-                  value={filters.riceVariety}
-                  onChange={handleFilterChange}
-                >
-  <option value="">Select Rice Variety</option>
-  {riceVarieties.map(variety => (
-    <option key={variety} value={variety}>{variety}</option>
-  ))}
-</select>
+              <select
+                className="input"
+                id="riceVariety"
+                name="riceVariety"
+                value={filters.riceVariety}
+                onChange={handleFilterChange}
+              >
+                <option value="">Select Rice Variety</option>
+                {riceVarieties.map(variety => (
+                  <option key={variety} value={variety}>{variety}</option>
+                ))}
+              </select>
             </div>
             <div className="flex items-end gap-2">
               <button 
@@ -287,7 +284,13 @@ const FarmerDashboard = () => {
         <div className="mb-8 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold mb-4">Price History</h2>
           <div className="h-80">
-            <Line options={chartOptions} data={chartData} />
+            {priceHistory.length > 0 ? (
+              <Line options={chartOptions} data={chartData} />
+            ) : (
+              <div className="text-center text-gray-600 flex items-center justify-center h-full">
+                No price history data available.
+              </div>
+            )}
           </div>
           <button
             className="mt-4 btn btn-secondary"
@@ -312,7 +315,6 @@ const FarmerDashboard = () => {
               <p className="mb-4">
                 <span className="font-medium">Price per Kg:</span> Rs. {selectedPrice.pricePerKg.toFixed(2)}
               </p>
-              
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="paddyWeight">
                   Paddy Weight (Kg)
@@ -328,7 +330,6 @@ const FarmerDashboard = () => {
                   step="0.01"
                 />
               </div>
-              
               <button
                 className="btn btn-primary"
                 onClick={calculateProfit}
@@ -336,7 +337,6 @@ const FarmerDashboard = () => {
                 Calculate Potential Earnings
               </button>
             </div>
-            
             <div className="flex items-center justify-center bg-gray-100 rounded-lg p-6">
               {estimatedProfit !== null ? (
                 <div className="text-center">
