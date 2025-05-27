@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { emitPriceUpdate } from '../../socket';
 
+// Use the /current endpoint for fetching only latest prices per mill+variety
 const API_URL = 'http://localhost:5000/api/prices';
 
 const initialState = {
@@ -13,15 +14,15 @@ const initialState = {
   message: ''
 };
 
-// Get all prices
+// Get only current/latest prices per mill+variety
 export const getPrices = createAsyncThunk(
   'prices/getAll',
   async (filters, thunkAPI) => {
     try {
-      let url = API_URL;
+      let url = `${API_URL}/current`;
       if (filters) {
         const queryParams = new URLSearchParams(filters).toString();
-        url = `${API_URL}?${queryParams}`;
+        url = `${API_URL}/current?${queryParams}`;
       }
       const response = await axios.get(url);
       return response.data;

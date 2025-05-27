@@ -49,7 +49,43 @@ router.get('/', async (req, res) => {
   }
 });
 
-// NEW: Price history endpoint for graph/charting
+// === NEW: Only the latest/current price per mill and rice variety ===
+router.get('/current', async (req, res) => {
+  try {
+    const { district, riceVariety } = req.query;
+    let match = {};
+    if (district) match.district = district;
+    if (riceVariety) match.riceVariety = riceVariety;
+
+    // Aggregate: sort by latest, group by millId + riceVariety, keep first (latest)
+    const prices = await Price.aggregate([
+      { $match: match },
+      { $sort: { millId: 1, riceVariety: 1, updateTimestamp: -1 } },
+      {
+        $group: {
+          _id: { millId: "$millId", riceVariety: "$riceVariety" },
+          millId: { $first: "$millId" },
+          riceVariety: { $first: "$riceVariety" },
+          pricePerKg: { $first: "$pricePerKg" },
+          updateTimestamp: { $first: "$updateTimestamp" },
+          district: { $first: "$district" },
+        }
+      }
+    ]);
+
+    // Optional: populate mill name and filter for verified mills
+    const populated = await Mill.populate(prices, { path: "millId" });
+    const verifiedPrices = populated.filter(
+      p => p.millId && p.millId.verificationStatus === "Verified"
+    );
+    res.json(verifiedPrices);
+  } catch (err) {
+    console.error('Error fetching current prices:', err);
+    res.status(500).json({ message: 'Error fetching current prices.' });
+  }
+});
+
+// Price history endpoint for graph/charting
 // Returns all price records for a given mill and rice variety, sorted by updateTimestamp ascending
 router.get('/history/:millId/:riceVariety', async (req, res) => {
   try {
